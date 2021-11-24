@@ -9,7 +9,6 @@
 #define STATUS_IDLE 0
 #define STATUS_SEARCHING 1
 
-//extern volatile int8_t isr_output = 0;
 
 class SPIINT {
   public:
@@ -20,25 +19,16 @@ class SPIINT {
 
   void timerSetup();
   void timerStart();
-//  void timerRead();
 
-  //bool isPulseFound();
-  //uint16_t getCapt1();
-  //uint16_t getCapt2();
-  //uint16_t getCapt3();
-  uint16_t getTimer();
-  uint8_t getFlag();
-  void setFlag(uint8_t iFlag);
-  void incFlag();
+  uint8_t getStatusFlag();
+  void setStatusFlag(uint8_t iStatusFlag);
   uint8_t getOutput();
   void printBits();
-  void checkIncomming();
+  bool checkIncomming();
     
   private:
     uint8_t _SPI_CLK_PIN;
     uint8_t _SPI_MOSI_PIN;
-
-
 
 };
 

@@ -33,31 +33,27 @@ volatile int8_t ob7;
 volatile uint8_t isr_tmp;
 volatile uint8_t isr_output;
 volatile uint8_t statusFlag = STATUS_IDLE;
-volatile uint16_t tcnt1now=0;
-volatile uint8_t tcnt1nowHigh=0;
-volatile uint8_t tcnt1nowLow=0;
+//volatile uint16_t tcnt1now=0;
+//volatile uint8_t tcnt1nowHigh=0;
+//volatile uint8_t tcnt1nowLow=0;
 
 // Arduino-pins
 #define SPICLK 2
 #define SPIMOSI 3
 
-// Uno Hardware
-#define SPICLK_INTERRUPT_UNO INT0
-#define ISR_VECTOR_UNO INT0_vect
-#define SPICLK_UNO PD2
-#define SPIDATA_UNO PD3
+#ifdef ARDUINO_AVR_UNO
+  #define SPICLK PD2
+  #define SPIDATA PD3
+  #define SPICLK_INTERRUPT INT0
+  #define COIN_ISR_VECTOR INT0_vect
+#endif
+#ifdef ARDUINO_AVR_LEONARDO
+  #define SPICLK PD1
+  #define SPIDATA PD0
+  #define SPICLK_INTERRUPT INT1
+  #define COIN_ISR_VECTOR INT1_vect
+#endif
 
-// Leonardo Hardware
-#define SPICLK_INTERRUPT_LEONARDO INT1
-#define ISR_VECTOR_LEONARDO INT1_vect
-#define SPICLK_LEONARDO PD1
-#define SPIDATA_LEONARDO PD0
-
-// Configure pins and interrupts for CoinAcceptor
-#define SPICLK SPICLK_LEONARDO
-#define SPIDATA SPIDATA_LEONARDO
-#define SPICLK_INTERRUPT SPICLK_INTERRUPT_LEONARDO
-#define COIN_ISR_VECTOR ISR_VECTOR_LEONARDO
 
 ISR(COIN_ISR_VECTOR, ISR_NAKED)
 {
@@ -78,6 +74,7 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
     "push  r24\n"
   );
 */
+  // Store as litle as possible on
   asm(
     "push  r24\n"
     "in  r24, 0x3f\n"
@@ -334,7 +331,7 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
 
 }
 
-void SPIINT::checkIncomming() {
+bool SPIINT::checkIncomming() {
   if (statusFlag==STATUS_IDLE) {
     // We are timing the bit-reading above to be slightly before the clock-signal falling edge.
     // This way we can verify that we have a high clock on every bit an so be sure we have a valid 8bit reading
@@ -386,14 +383,9 @@ if (isr_output==0x24) {
     Serial.println("-");
 #endif
 
-
-
     if (verify>0) {
       isr_output = isr_tmp;
-      //Serial.println(isr_output,HEX);
-//      digitalWrite(8,HIGH);
-      statusFlag=STATUS_SEARCHING; // change flag to 1 if we want to reject it.
-      TCNT1 = 0;
+      return true;
     }
   }
 }
@@ -461,19 +453,12 @@ void SPIINT::timerStart() {
   sei();
 }
 
-uint16_t SPIINT::getTimer(){
-  return TCNT1;
-}
-uint8_t SPIINT::getFlag(){
+uint8_t SPIINT::getStatusFlag(){
   return statusFlag;
 }
-void SPIINT::setFlag(uint8_t iFlag){
-  statusFlag = iFlag;
+void SPIINT::setStatusFlag(uint8_t iStatusFlag){
+  statusFlag = iStatusFlag;
 }
-void SPIINT::incFlag(){
-  statusFlag++;
-}
-
 uint8_t SPIINT::getOutput(){
   return isr_output;
 }
@@ -483,22 +468,7 @@ uint8_t SPIINT::getOutput(){
    Private memberfunctions
 */
 
-
-
-//Overflow ISR
-/*
-ISR(TIMER1_OVF_vect)
-{
-//increment overflow counter
-T1Ovs1++;
-//Serial.println("overFlow");
-//Flag++;
-//int i=5;
-}
-*/
 void SPIINT::printBits() {
-  //if (ob0!=0)
-  {
   Serial.println("--bits--");
   Serial.println(ob0);
   Serial.println(ob1);
@@ -508,5 +478,4 @@ void SPIINT::printBits() {
   Serial.println(ob5);
   Serial.println(ob6);
   Serial.println(ob7);
-  }
 }

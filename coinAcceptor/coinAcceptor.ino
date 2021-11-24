@@ -9,7 +9,24 @@ int16_t coinCounter = 0;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Start interrupTest SPI");
+
+#ifdef ARDUINO_AVR_UNO  
+  Serial.println("Start CoinAcceptor Uno");
+#endif
+#ifdef ARDUINO_AVR_LEONARDO
+    while (!Serial) {
+      ; // wait for serial port to connect. Needed for native USB
+    }
+    Serial.println("Start CoinAcceptor Leonardo");
+#endif
+#ifdef ARDUINO_AVR_MEGA2560
+    Serial.println("Start CoinAcceptor Mega2560");
+#endif
+
+#ifdef ARDUINO_AVR_LEONARDO
+  // Serial for sending the coin-number on serial-pin
+  Serial1.begin(9600);
+#endif
 
   pinMode(debugPin, OUTPUT);
   
@@ -20,10 +37,13 @@ void setup() {
 uint8_t coinNumberNow = 0;
 uint8_t coinNumberLast = 0;
 void loop() {
-  if ( spi.getFlag() == STATUS_IDLE ) {
-    spi.checkIncomming();
+  if ( spi.getStatusFlag() == STATUS_IDLE ) {
+    if ( spi.checkIncomming() ) {
+      //digitalWrite(8,HIGH);
+    }
+
   }
-  if ( spi.getFlag() == STATUS_IDLE ) {
+  if ( spi.getStatusFlag() == STATUS_IDLE ) {
     coinNumberNow = spi.getOutput();
     if (coinNumberNow != coinNumberLast) {
 //      spi.printBits();
@@ -52,18 +72,23 @@ void loop() {
         Serial.print(coinNumberNow,HEX);
         Serial.print(", Value: ");
         Serial.println(number);
+
+#ifdef ARDUINO_AVR_LEONARDO
+        // send coin-number on serial
+        Serial1.write(number);
+#endif
 //        delay(120);
       }
 
 
       // Debug-code for external Logic Analyzer
-      if (coinNumberNow != 0x24) {
-        digitalWrite(debugPin,LOW);
-      }
+//      if (coinNumberNow != 0x24) {
+//        digitalWrite(debugPin,LOW);
+//      }
     }
     coinNumberLast = coinNumberNow;
     TCNT1=0;
-    spi.setFlag(STATUS_SEARCHING);
+    spi.setStatusFlag(STATUS_SEARCHING);
   }
 
 
