@@ -14,7 +14,8 @@ void setup() {
   Serial.println("Start CoinAcceptor Uno");
 #endif
 #ifdef ARDUINO_AVR_LEONARDO
-    while (!Serial) {
+    unsigned long timeOut = millis();
+    while (!Serial && (millis()-timeOut < 3000)) {
       ; // wait for serial port to connect. Needed for native USB
     }
     Serial.println("Start CoinAcceptor Leonardo");
