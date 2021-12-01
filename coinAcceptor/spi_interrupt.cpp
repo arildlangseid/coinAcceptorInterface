@@ -10,10 +10,7 @@
    Pubblic memberfunctions
 */
 
-//Counts overflovs
-//volatile uint16_t T1Ovs1;
-
-
+// read incomming port in time-critical parts
 volatile int8_t b0;
 volatile int8_t b1;
 volatile int8_t b2;
@@ -22,6 +19,8 @@ volatile int8_t b4;
 volatile int8_t b5;
 volatile int8_t b6;
 volatile int8_t b7;
+
+// working variables after time-critical port reading
 volatile int8_t ob0;
 volatile int8_t ob1;
 volatile int8_t ob2;
@@ -30,12 +29,10 @@ volatile int8_t ob4;
 volatile int8_t ob5;
 volatile int8_t ob6;
 volatile int8_t ob7;
+
 volatile uint8_t isr_tmp;
 volatile uint8_t isr_output;
 volatile uint8_t statusFlag = STATUS_IDLE;
-//volatile uint16_t tcnt1now=0;
-//volatile uint8_t tcnt1nowHigh=0;
-//volatile uint8_t tcnt1nowLow=0;
 
 // Arduino-pins
 #define SPICLK 2
@@ -57,24 +54,7 @@ volatile uint8_t statusFlag = STATUS_IDLE;
 
 ISR(COIN_ISR_VECTOR, ISR_NAKED)
 {
-  // store r24 in EEDR eeprom data register
-/*
-  asm(
-    "out 0x1D, r24\n"
-  );
-*/
-  // Full store is SREG is needed
-/*
-  asm(
-    "push  r1\n"
-    "push  r0\n"
-    "in  r0, 0x3f\n"
-    "push  r0\n"
-    "eor r1, r1\n"
-    "push  r24\n"
-  );
-*/
-  // Store as litle as possible on
+  // Store as litle as possible
   asm(
     "push  r24\n"
     "in  r24, 0x3f\n"
@@ -229,22 +209,7 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
 
   if ( statusFlag == STATUS_IDLE )
   {
-/*
-    asm(
-      "in r24, 0x1D\n" // restore r24 from EEDR eeprom data register
-      "reti\n"
-    );
-*/
-/*
-    asm(
-      "pop r24\n"
-      "pop r0\n"
-      "out 0x3f, r0\n"
-      "pop r0\n"
-      "pop r1\n"
-      "reti\n"
-    );
-*/
+    // restore registers used in isr
     asm(
       "pop r24\n"
       "out 0x3f, r24\n"
@@ -254,24 +219,7 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
 
   }
 
-  //tcnt1now=TCNT1;
-/*
-  asm(
-    "lds r24, 0x0084\n" // TCNT1L
-    "sts (tcnt1nowLow), r24\n"
-    "lds r24, 0x0085\n" // TCNT1H
-    "sts (tcnt1nowHigh), r24\n"
-  );
-*/
-
-//    TCNT1L=0;
-//    TCNT1H=0;
-/*
-    asm(
-      "sts 0x0084, 0\n" // TCNT1L
-      "sts 0x0085, 0\n" // TCNT1H
-    );
-*/
+  // Store readings to output-variables for further calculations
   asm (
 //    ob0=b0;
     "lds r24, (b0)\n"
@@ -306,28 +254,13 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
     "sts (statusFlag), r24\n"
   );
 
-/*
-  asm(
-    "in r24, 0x1D\n"
-    "reti\n"
-  );
-*/
-/*
+  // restore registers used in isr
   asm(
     "pop r24\n"
-    "pop r0\n"
-    "out 0x3f, r0\n"
-    "pop r0\n"
-    "pop r1\n"
+    "out 0x3f, r24\n"
+    "pop r24\n"
     "reti\n"
   );
-*/
-    asm(
-      "pop r24\n"
-      "out 0x3f, r24\n"
-      "pop r24\n"
-      "reti\n"
-    );
 
 }
 
@@ -335,7 +268,8 @@ bool SPIINT::checkIncomming() {
   if (statusFlag==STATUS_IDLE) {
     // We are timing the bit-reading above to be slightly before the clock-signal falling edge.
     // This way we can verify that we have a high clock on every bit an so be sure we have a valid 8bit reading
-    byte verify = ob0&ob1&ob2&ob3&ob4&ob5&ob6&ob7 & (1<<SPICLK); // 0x04 is SPI CLOCK
+    // (if we are too late, clock on bit7 will be low - and so we discard the reading as invalid)
+    byte verify = ob0&ob1&ob2&ob3&ob4&ob5&ob6&ob7 & (1<<SPICLK);
     isr_tmp = 0;
     isr_tmp |= (ob0&(1<<SPIDATA))>>SPIDATA<<7;
     isr_tmp |= (ob1&(1<<SPIDATA))>>SPIDATA<<6;
@@ -345,19 +279,6 @@ bool SPIINT::checkIncomming() {
     isr_tmp |= (ob5&(1<<SPIDATA))>>SPIDATA<<2;
     isr_tmp |= (ob6&(1<<SPIDATA))>>SPIDATA<<1;
     isr_tmp |= (ob7&(1<<SPIDATA))>>SPIDATA<<0;
-
-
-/*
-Serial.print("SPICLK=");
-Serial.println(SPICLK);
-Serial.print("SPIDATA=");
-Serial.println(SPIDATA);
-*/
-/*
-if (isr_output==0x24) {
-  Serial.print("tcnt1:");Serial.println(tcnt1now);
-}
-*/
 
 #ifdef DEBUG_PRINT_ERROR
     Serial.print("tcnt1:");Serial.println(tcnt1now);
@@ -420,25 +341,23 @@ void SPIINT::timerSetup() {
   TCCR1B=0;
   // set top value to ICR1
   ICR1=0xffff;
-  // set compare values
-  //OCR1A=0x0064;
-  //OCR1B=0x0096;
-//  TIMSK1 = (1<<TOIE1); // interrupt when TCNT1 is overflowed
 
   // Set Initial Timer value
   TCNT1=0;
 
+  // Reset all trigger modes on interrupt
   EICRA=0;
-  // Set trigger mode on Interrupt0
+  // Set trigger mode on Interrupt (setting both INT0 and INT1 for both Uno and Leonardo)
   EICRA|=(1<<ISC01)|(1<ISC00); // INT0 rising
   EICRA|=(1<<ISC11)|(1<ISC10); // INT1 rising
-  //EICRA|=(1<ISC00); // INT0 change
-  //EICRA|=(1<<ISC01); // INT0 falling
+
+  // disable interrupts
   EIMSK=0;
   
 }
 
 void SPIINT::timerStart() {
+  // Setup Timer1
   TCNT1=0;
   TCCR1B|=(1<<CS12)|(1<<CS10);
 
@@ -447,8 +366,6 @@ void SPIINT::timerStart() {
   // enable Interrup
   EIMSK|=(1<<SPICLK_INTERRUPT); // INT0 inabled
 
-  //Start timer without prescaller
-  //TCCR1B|=(1<<CS10);
   //Enable global interrutps
   sei();
 }
