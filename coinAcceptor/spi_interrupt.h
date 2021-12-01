@@ -14,7 +14,7 @@ class SPIINT {
   public:
 
     // Constructor / Destructor
-    SPIINT(int dummy);
+    SPIINT();
     ~SPIINT();
 
   void timerSetup();
@@ -27,8 +27,6 @@ class SPIINT {
   bool checkIncomming();
     
   private:
-    uint8_t _SPI_CLK_PIN;
-    uint8_t _SPI_MOSI_PIN;
 
 };
 

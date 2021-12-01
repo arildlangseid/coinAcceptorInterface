@@ -7,9 +7,8 @@
 
 
 /*
-   Pubblic memberfunctions
-*/
-
+ * ISR
+ */
 // read incomming port in time-critical parts
 volatile int8_t b0;
 volatile int8_t b1;
@@ -207,7 +206,12 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
     "sts (b7),r24\n"
   );
 
-  if ( statusFlag == STATUS_IDLE )
+  asm(
+  //if ( statusFlag == STATUS_IDLE )
+    "lds r24, (statusFlag)\n"
+    "cpse  r24, r1\n"
+    "rjmp  .+8\n"
+  );
   {
     // restore registers used in isr
     asm(
@@ -264,6 +268,9 @@ ISR(COIN_ISR_VECTOR, ISR_NAKED)
 
 }
 
+/*
+   Pubblic memberfunctions
+*/
 bool SPIINT::checkIncomming() {
   if (statusFlag==STATUS_IDLE) {
     // We are timing the bit-reading above to be slightly before the clock-signal falling edge.
@@ -314,7 +321,7 @@ bool SPIINT::checkIncomming() {
 /*
    Constructor
 */
-SPIINT::SPIINT(int dummy)
+SPIINT::SPIINT()
 {
   pinMode(SPICLK, INPUT);
   pinMode(SPIMOSI, INPUT);
@@ -381,10 +388,6 @@ uint8_t SPIINT::getOutput(){
 }
 
 
-/**
-   Private memberfunctions
-*/
-
 void SPIINT::printBits() {
   Serial.println("--bits--");
   Serial.println(ob0);
@@ -396,3 +399,7 @@ void SPIINT::printBits() {
   Serial.println(ob6);
   Serial.println(ob7);
 }
+
+/**
+   Private memberfunctions
+*/
