@@ -14,11 +14,11 @@ void setup() {
   Serial.println("Start CoinAcceptor Uno");
 #endif
 #ifdef ARDUINO_AVR_LEONARDO
-    unsigned long timeOut = millis();
-    while (!Serial && (millis()-timeOut < 3000)) {
-      ; // wait for serial port to connect. Needed for native USB
-    }
-    Serial.println("Start CoinAcceptor Leonardo");
+  unsigned long timeOut = millis();
+  while (!Serial && (millis()-timeOut < 3000)) {
+    ; // wait for serial port to connect. Needed for native USB
+  }
+  Serial.println("Start CoinAcceptor Leonardo");
 #endif
 #ifdef ARDUINO_AVR_MEGA2560
     Serial.println("Start CoinAcceptor Mega2560");
