@@ -15,7 +15,7 @@
 AccelStepper stepper = AccelStepper(AccelStepper::FULL4WIRE, motorPin1, motorPin3, motorPin2, motorPin4);
 
 
-int motorTurnDir = -1; // either -1 or 1 to make the coindisc turn ccw
+int motorTurnDir = 1; // either -1 or 1 to make the coindisc turn ccw
 int motorSpeed = 2000; // Set motor speed to AccelStepper
 
 
