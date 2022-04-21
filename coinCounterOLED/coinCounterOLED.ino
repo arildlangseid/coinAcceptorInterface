@@ -1,7 +1,10 @@
 #include <SoftwareSerial.h>
 #include <U8glib.h>
 
-U8GLIB_SH1106_128X64 u8g(12, 11, 8, 9, 10);  // D0=12, D1=11, CS=8, DC=9, Reset=10
+// uncomment for SPI-interface
+//U8GLIB_SH1106_128X64 u8g(12, 11, 8, 9, 10);  // D0=12, D1=11, CS=8, DC=9, Reset=10
+// uncomment for I2C-interface
+U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE|U8G_I2C_OPT_DEV_0); // I2C / TWI // Leonardo: SCL=3, SCA=2, UNO: SCL=A5, SDA=A4
 
 SoftwareSerial mySerial(3, 4); // RX, TX
 
